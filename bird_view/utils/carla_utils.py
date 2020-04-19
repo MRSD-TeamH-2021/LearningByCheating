@@ -342,7 +342,7 @@ class TrafficTracker(object):
 class CarlaWrapper(object):
     def __init__(
             self, town='Town01', vehicle_name=VEHICLE_NAME, port=2000, client=None,
-            col_threshold=400, big_cam=False, seed=None, respawn_peds=True, **kwargs):
+            col_threshold=400, big_cam=False, seed=None, respawn_peds=True, run_scenario=False, **kwargs):
         
         if client is None:    
             self._client = carla.Client('localhost', port)
@@ -354,7 +354,12 @@ class CarlaWrapper(object):
         set_sync_mode(self._client, False)
 
         self._town_name = town
-        self._world = self._client.load_world(town)
+
+        if run_scenario:
+            self._world = self._client.get_world()
+        else:
+            self._world = self._client.load_world(town)
+
         self._map = self._world.get_map()
 
         self._blueprints = self._world.get_blueprint_library()
@@ -486,14 +491,23 @@ class CarlaWrapper(object):
         self.weather = weather
         self._world.set_weather(weather)
 
-    def init(self, start=0, weather='random', n_vehicles=0, n_pedestrians=0):
+    def init(self, start=0, weather='random', n_vehicles=0, n_pedestrians=0, args=None):
+        self.run_scenario = args.run_scenario
+
         while True:
             self.n_vehicles = n_vehicles or self.n_vehicles
             self.n_pedestrians = n_pedestrians or self.n_pedestrians
-            self._start_pose = self._map.get_spawn_points()[start]
-    
+            
+            if not self.run_scenario:
+                self._start_pose = self._map.get_spawn_points()[start]
+            else:
+                self._start_pose = start
+
             self.clean_up()
-            self.spawn_player()
+            
+            if not self.get_hero("hero"):
+                self.spawn_player()
+
             self._setup_sensors()
     
             # Hiding away the gore.
@@ -527,6 +541,12 @@ class CarlaWrapper(object):
         self._player.start_dtcrowd()
         self._actor_dict['player'].append(self._player)
         
+    def get_hero(self, role_name):
+        possible_vehicles = self._world.get_actors().filter('vehicle.*')
+        for vehicle in possible_vehicles:
+            if vehicle.attributes['role_name'] == role_name:
+                self._player = vehicle
+        return self._player
 
     def ready(self, ticks=50):
         self.tick()
@@ -622,7 +642,10 @@ class CarlaWrapper(object):
         self._time_start = time.time()
         
         if self._player:
-            self._player.stop_dtcrowd()
+            if self.run_scenario:
+                self._player.destroy()
+            else:
+                self._player.stop_dtcrowd()
         self._player = None
 
         # Clean-up cameras

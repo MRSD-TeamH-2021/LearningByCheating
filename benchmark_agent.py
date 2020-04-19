@@ -8,6 +8,8 @@ from benchmark.run_benchmark import run_benchmark
 
 import bird_view.utils.bz_utils as bzu
 
+import xml.etree.ElementTree as ET
+import carla 
 
 def _agent_factory_hack(model_path, config, autopilot):
     """
@@ -42,8 +44,54 @@ def _agent_factory_hack(model_path, config, autopilot):
 
     return lambda: agent_class(**agent_args)
 
+class TargetConfiguration(object):
 
-def run(model_path, port, suite, big_cam, seed, autopilot, resume, max_run=10, show=False):
+    """
+    This class provides the basic  configuration for a target location
+    """
+
+    transform = None
+
+    def __init__(self, node):
+        pos_x = float(node.attrib.get('x', 0))
+        pos_y = float(node.attrib.get('y', 0))
+        pos_z = float(node.attrib.get('z', 0))
+        yaw = float(node.attrib.get('yaw', 0))
+
+        self.transform = carla.Transform(carla.Location(x=pos_x, y=pos_y, z=pos_z), carla.Rotation(yaw=yaw))
+
+
+def get_target_from_xml(filepath, scenario_name):
+    if not filepath:
+        print(filepath)
+        print("Run Scenario flag is on but XML File not specified.")
+        return None
+    
+    tree = ET.parse(filepath)
+    target = None
+    start = None
+    # print(scenario_name)
+
+    for scenario in tree.iter("scenario"):
+        if(scenario.attrib.get('name') == scenario_name):
+            for target in scenario.iter("target"):
+                target = TargetConfiguration(target).transform
+                
+            for start in scenario.iter("ego_vehicle"):
+                start = TargetConfiguration(start).transform
+                
+    return start, target
+
+def run(model_path, port, suite, big_cam, seed, autopilot, resume, args, max_run=10, show=False):
+    
+    # Get Player
+
+    # Get target
+    if (args.run_scenario):
+        start_pose, target_pose = get_target_from_xml(args.scenario_config, args.scenario)
+        if not (target_pose or start_pose):
+            return
+
     log_dir = model_path.parent
     config = bzu.load_json(str(log_dir / 'config.json'))
 
@@ -55,11 +103,11 @@ def run(model_path, port, suite, big_cam, seed, autopilot, resume, max_run=10, s
         benchmark_dir = log_dir / 'benchmark' / model_path.stem / ('%s_seed%d' % (suite_name, seed))
         benchmark_dir.mkdir(parents=True, exist_ok=True)
 
-        with make_suite(suite_name, port=port, big_cam=big_cam) as env:
+        with make_suite(suite_name, port=port, big_cam=big_cam, run_scenario=args.run_scenario) as env:
             agent_maker = _agent_factory_hack(model_path, config, autopilot)
 
-            run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, max_run=max_run, show=show)
-
+            run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args, start_pose, target_pose, max_run=max_run, show=show)
+            
         elapsed = time.time() - tick
         total_time += elapsed
 
@@ -77,9 +125,12 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=2019)
     parser.add_argument('--autopilot', action='store_true', default=False)
     parser.add_argument('--show', action='store_true', default=False)
+    parser.add_argument('--run_scenario', action='store_true', default=False)
+    parser.add_argument('--scenario_config', default=None)
+    parser.add_argument('--scenario', default=None)
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--max-run', type=int, default=3)
 
     args = parser.parse_args()
 
-    run(Path(args.model_path), args.port, args.suite, args.big_cam, args.seed, args.autopilot, args.resume, max_run=args.max_run, show=args.show)
+    run(Path(args.model_path), args.port, args.suite, args.big_cam, args.seed, args.autopilot, args.resume, args, max_run=args.max_run, show=args.show)

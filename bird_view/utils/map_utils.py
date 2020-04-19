@@ -395,6 +395,8 @@ class MapImage(object):
         precision = 0.05
 
         def draw_lane_marking(surface, points, solid=True):
+            if len(points) <= 1:
+                return
             if solid:
                 # pygame.draw.lines(surface, COLOR_ORANGE_0, False, points, 2)
                 pygame.draw.lines(surface, COLOR_WHITE, False, points, 2)

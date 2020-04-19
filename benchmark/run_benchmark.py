@@ -163,10 +163,10 @@ def _paint(observations, control, diagnostic, debug, env, show=False):
     bzu.add_to_video(full)
 
 
-def run_single(env, weather, start, target, agent_maker, seed, autopilot, show=False):
+def run_single(env, weather, start, target, agent_maker, seed, autopilot, args, show=False):
     # HACK: deterministic vehicle spawns.
     env.seed = seed
-    env.init(start=start, target=target, weather=cu.PRESET_WEATHERS[weather])
+    env.init(start=start, target=target, weather=cu.PRESET_WEATHERS[weather], args=args)
 
     if not autopilot:
         agent = agent_maker()
@@ -205,7 +205,7 @@ def run_single(env, weather, start, target, agent_maker, seed, autopilot, show=F
     return result, diagnostics
 
 
-def run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, max_run=5, show=False):
+def run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args, start_pose, target_pose, max_run=5, show=False):
     """
     benchmark_dir must be an instance of pathlib.Path
     """
@@ -215,6 +215,9 @@ def run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, max_
 
     summary = list()
     total = len(list(env.all_tasks))
+    
+    if args.run_scenario:
+        total = 1
 
     if summary_csv.exists() and resume:
         summary = pd.read_csv(summary_csv)
@@ -230,12 +233,17 @@ def run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, max_
             print (weather, start, target)
             continue
 
+        if args.run_scenario:
+            target = target_pose
+            start = start_pose
+            if num_run >=1:
+                return
 
         diagnostics_csv = str(diagnostics_dir / ('%s.csv' % run_name))
 
         bzu.init_video(save_dir=str(benchmark_dir / 'videos'), save_path=run_name)
 
-        result, diagnostics = run_single(env, weather, start, target, agent_maker, seed, autopilot, show=show)
+        result, diagnostics = run_single(env, weather, start, target, agent_maker, seed, autopilot, args, show=show)
 
         summary = summary.append(result, ignore_index=True)
 

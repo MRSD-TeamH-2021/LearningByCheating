@@ -20,6 +20,8 @@ def _add(suite_name, *args, **kwargs):
         town = 'Town01'
     elif 'Town02' in suite_name:
         town = 'Town02'
+    elif 'Town03' in suite_name:
+        town = 'Town03'
     else:
         raise Exception('No town specified: %s.' % suite_name)
 
@@ -146,6 +148,8 @@ _add('TurnTown02-noweather', n_vehicles=0, weathers=[1])
 _add('FullTown02-noweather-nav', n_vehicles=0, weathers=[1])
 _add('FullTown02-noweather', n_vehicles=15, weathers=[1])
 
+_add('FullTown03-v0', n_vehicles=0, weathers=[1])
+# _add('FullTown01-v0', n_vehicles=0, weathers=, respawn_peds=False)
 
 _aliases = {
         'town1': [
@@ -156,6 +160,14 @@ _aliases = {
             'FullTown02-v1', 'FullTown02-v2', 'FullTown02-v3', 'FullTown02-v4',
             'StraightTown02-v1', 'StraightTown02-v2',
             'TurnTown02-v1', 'TurnTown02-v2'],
+        'town3': [
+            'FullTown03-v0'],
+        'town1nw': [
+            'NoCrashTown01_noweather_empty'],
+        'town2nw': [
+            'NoCrashTown02_noweather_empty'],
+        'town3nw': [
+            'FullTown03-v0'],
         'town1p': [
             'FullTown01-v5', 'FullTown01-v6',
             'StraightTown01-v3', 'TurnTown01-v3',
@@ -200,7 +212,7 @@ _aliases['all'] = _aliases['town1'] + _aliases['town2']
 ALL_SUITES = list(_suites.keys()) + list(_aliases.keys())
 
 
-def make_suite(suite_name, port=2000, big_cam=False, planner='new', client=None):
+def make_suite(suite_name, port=2000, big_cam=False, planner='new', client=None, player=None, run_scenario=False):
     assert suite_name in _suites, '%s is not registered!'%suite_name
 
     args, kwargs = _suites[suite_name]
@@ -208,6 +220,8 @@ def make_suite(suite_name, port=2000, big_cam=False, planner='new', client=None)
     kwargs['big_cam'] = big_cam
     kwargs['planner'] = planner
     kwargs['client'] = client
+    kwargs['player'] = player
+    kwargs['run_scenario'] = run_scenario
 
     return PointGoalSuite(*args, **kwargs)
 
