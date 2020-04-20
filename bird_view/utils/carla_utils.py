@@ -341,7 +341,7 @@ class TrafficTracker(object):
 
 class CarlaWrapper(object):
     def __init__(
-            self, town='Town01', vehicle_name=VEHICLE_NAME, port=2000, client=None,
+            self, town='Town01', vehicle_name=VEHICLE_NAME, port=2000, client=None, player_name="hero",
             col_threshold=400, big_cam=False, seed=None, respawn_peds=True, run_scenario=False, **kwargs):
         
         if client is None:    
@@ -362,9 +362,11 @@ class CarlaWrapper(object):
 
         self._map = self._world.get_map()
 
+        self._player_name = player_name
+
         self._blueprints = self._world.get_blueprint_library()
         self._vehicle_bp = np.random.choice(self._blueprints.filter(vehicle_name))
-        self._vehicle_bp.set_attribute('role_name', 'hero')
+        self._vehicle_bp.set_attribute('role_name', self._player_name)
 
         self._tick = 0
         self._player = None
@@ -504,8 +506,8 @@ class CarlaWrapper(object):
                 self._start_pose = start
 
             self.clean_up()
-            
-            if not self.get_hero("hero"):
+
+            if not self.get_hero(self._player_name):
                 self.spawn_player()
 
             self._setup_sensors()

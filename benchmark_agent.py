@@ -70,28 +70,43 @@ def get_target_from_xml(filepath, scenario_name):
     tree = ET.parse(filepath)
     target = None
     start = None
-    # print(scenario_name)
+    print(scenario_name)
+
+    h_start = []
+    h_target = []
 
     for scenario in tree.iter("scenario"):
         if(scenario.attrib.get('name') == scenario_name):
-            for target in scenario.iter("target"):
-                target = TargetConfiguration(target).transform
-                
-            for start in scenario.iter("ego_vehicle"):
-                start = TargetConfiguration(start).transform
-                
-    return start, target
+            for start in scenario.iter("hero_start"):
+                h_start.append(TargetConfiguration(start).transform)
+                print(h_start)
+            for target in scenario.iter("hero_target"):
+                h_target.append(TargetConfiguration(target).transform)
+    
+    # print(h_start)
+    # print(h_target)
+    return h_start, h_target
 
 def run(model_path, port, suite, big_cam, seed, autopilot, resume, args, max_run=10, show=False):
     
-    # Get Player
-
     # Get target
     if (args.run_scenario):
-        start_pose, target_pose = get_target_from_xml(args.scenario_config, args.scenario)
+        h_start, h_target = get_target_from_xml(args.scenario_config, args.scenario)
+        if args.player_name == "hero":
+            start_pose = h_start[0]
+            target_pose = h_target[0]
+        elif args.player_name == "hero1":
+            start_pose = h_start[1]
+            target_pose = h_target[1]
+        if args.player_name == "hero2":
+            start_pose = h_start[2]
+            target_pose = h_target[2]
+            
         if not (target_pose or start_pose):
             return
 
+    print(start_pose)
+    print(target_pose)
     log_dir = model_path.parent
     config = bzu.load_json(str(log_dir / 'config.json'))
 
@@ -103,7 +118,7 @@ def run(model_path, port, suite, big_cam, seed, autopilot, resume, args, max_run
         benchmark_dir = log_dir / 'benchmark' / model_path.stem / ('%s_seed%d' % (suite_name, seed))
         benchmark_dir.mkdir(parents=True, exist_ok=True)
 
-        with make_suite(suite_name, port=port, big_cam=big_cam, run_scenario=args.run_scenario) as env:
+        with make_suite(suite_name, port=port, big_cam=big_cam, run_scenario=args.run_scenario, player_name=args.player_name) as env:
             agent_maker = _agent_factory_hack(model_path, config, autopilot)
 
             run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args, start_pose, target_pose, max_run=max_run, show=show)
@@ -130,6 +145,7 @@ if __name__ == '__main__':
     parser.add_argument('--scenario', default=None)
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--max-run', type=int, default=3)
+    parser.add_argument('--player-name', default="hero")
 
     args = parser.parse_args()
 

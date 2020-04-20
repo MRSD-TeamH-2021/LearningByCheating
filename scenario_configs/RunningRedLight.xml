@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<scenarios>
+    <scenario name="OppositeVehicleRunningRedLight021" type="OppositeVehicleRunningRedLight" town="Town02">
+        <hero_start x="-3" y="250" z="1" yaw="270" model="vehicle.lincoln.mkz2017" />
+        <hero_target x="-3" y="157" z="1" yaw="270" model="vehicle.lincoln.mkz2017" />
+        <!-- <hero_target x="72.3" y="109" z="1" yaw="0" model="vehicle.lincoln.mkz2017" /> -->
+        <hero_start x="-8" y="134.5" z="1" yaw="90" model="vehicle.lincoln.mkz2017" />
+        <hero_target x="-8" y="284" z="1" yaw="90" model="vehicle.lincoln.mkz2017" />
+        <hero_start x="34" y="187" z="1" yaw="180" model="vehicle.lincoln.mkz2017" />
+        <hero_target x="14.6" y="306.7" z="1" yaw="0" model="vehicle.lincoln.mkz2017" />
+        <!-- <other_actor x="8.5" y="188" z="0.3" yaw="180" model="vehicle.tesla.model3" /> -->
+    </scenario>
+</scenarios>

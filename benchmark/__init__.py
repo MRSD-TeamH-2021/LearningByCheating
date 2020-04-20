@@ -212,7 +212,7 @@ _aliases['all'] = _aliases['town1'] + _aliases['town2']
 ALL_SUITES = list(_suites.keys()) + list(_aliases.keys())
 
 
-def make_suite(suite_name, port=2000, big_cam=False, planner='new', client=None, player=None, run_scenario=False):
+def make_suite(suite_name, port=2000, big_cam=False, planner='new', client=None, player_name="hero", run_scenario=False):
     assert suite_name in _suites, '%s is not registered!'%suite_name
 
     args, kwargs = _suites[suite_name]
@@ -220,7 +220,7 @@ def make_suite(suite_name, port=2000, big_cam=False, planner='new', client=None,
     kwargs['big_cam'] = big_cam
     kwargs['planner'] = planner
     kwargs['client'] = client
-    kwargs['player'] = player
+    kwargs['player_name'] = player_name
     kwargs['run_scenario'] = run_scenario
 
     return PointGoalSuite(*args, **kwargs)
