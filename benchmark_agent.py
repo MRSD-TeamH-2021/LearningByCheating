@@ -87,6 +87,15 @@ def get_target_from_xml(filepath, scenario_name):
     # print(h_target)
     return h_start, h_target
 
+def set_sync_mode(client, sync):
+    world = client.get_world()
+
+    settings = world.get_settings()
+    settings.synchronous_mode = sync
+    settings.fixed_delta_seconds = 0.1
+
+    world.apply_settings(settings)
+
 def run(model_path, port, suite, big_cam, seed, autopilot, resume, args, max_run=10, show=False):
     
     # Get target
@@ -118,11 +127,18 @@ def run(model_path, port, suite, big_cam, seed, autopilot, resume, args, max_run
         benchmark_dir = log_dir / 'benchmark' / model_path.stem / ('%s_seed%d' % (suite_name, seed))
         benchmark_dir.mkdir(parents=True, exist_ok=True)
 
-        with make_suite(suite_name, port=port, big_cam=big_cam, run_scenario=args.run_scenario, player_name=args.player_name) as env:
-            agent_maker = _agent_factory_hack(model_path, config, autopilot)
+        agent_maker = _agent_factory_hack(model_path, config, autopilot)
+        
+        client = carla.Client('localhost', port)
+        
+        set_sync_mode(client, True)
+        
+        env = make_suite(suite_name, port=port, big_cam=big_cam, run_scenario=args.run_scenario, player_name=args.player_name, client=client)
+        run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args, start_pose, target_pose, max_run=max_run, show=show)
+        env.clean_up()
+        
+        set_sync_mode(client, False)
 
-            run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args, start_pose, target_pose, max_run=max_run, show=show)
-            
         elapsed = time.time() - tick
         total_time += elapsed
 
