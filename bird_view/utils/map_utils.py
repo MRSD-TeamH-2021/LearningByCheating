@@ -1315,8 +1315,8 @@ module_manager = ModuleManager()
 # ==============================================================================
 class Wrapper(object):
     clock = None
-    display = None
-    world_module = None
+    display = []
+    world_module = []
 
     @classmethod
     def init(cls, client, world, carla_map, player):
@@ -1331,28 +1331,30 @@ class Wrapper(object):
         # Set map drawer module
         input_module = ModuleInput(MODULE_INPUT)
         hud_module = ModuleHUD(MODULE_HUD, 320, 320)
-        world_module = ModuleWorld(MODULE_WORLD, client, world, carla_map, player)
+        wm = ModuleWorld(MODULE_WORLD, client, world, carla_map, player)
+        cls.world_module.append(wm)
 
         # Register Modules
-        module_manager.register_module(world_module)
+        module_manager.register_module(wm)
         module_manager.register_module(hud_module)
         module_manager.register_module(input_module)
         module_manager.start_modules()
 
-        cls.world_module = world_module
-        cls.display = display
+        # cls.world_module = world_module
+        cls.display.append(display)
         cls.clock = pygame.time.Clock()
 
     @classmethod
-    def tick(cls):
-        module_manager.tick(cls.clock)
-        module_manager.render(cls.display)
+    def tick(cls, idx):
+        cls.world_module[idx].tick(cls.clock)
+        cls.display[idx].fill(COLOR_ALUMINIUM_4)
+        cls.world_module[idx].render(cls.display[idx])
 
     @classmethod
-    def get_observations(cls):
-        road, lane, vehicle, pedestrian, traffic = cls.world_module.get_rendered_surfaces()
+    def get_observations(cls, idx):
+        road, lane, vehicle, pedestrian, traffic = cls.world_module[idx].get_rendered_surfaces()
 
-        result = cls.world_module.get_hero_measurements()
+        result = cls.world_module[idx].get_hero_measurements()
         result.update({
                 'road': np.uint8(road),
                 'lane': np.uint8(lane),
@@ -1370,12 +1372,11 @@ class Wrapper(object):
         module_manager.clear_modules()
 
     @classmethod
-    def render_world(cls):
-        map_surface = cls.world_module.map_image.big_map_surface
+    def render_world(cls, idx):
+        map_surface = cls.world_module[idx].map_image.big_map_surface
         map_image = np.swapaxes(pygame.surfarray.array3d(map_surface), 0, 1)
-
         return map_image
 
     @classmethod
-    def world_to_pixel(cls, pos):
-        return cls.world_module.map_image.world_to_pixel(pos)
+    def world_to_pixel(cls, pos, idx):
+        return cls.world_module[idx].map_image.world_to_pixel(pos)

@@ -132,12 +132,25 @@ def run(model_path, port, suite, big_cam, seed, autopilot, resume, args, max_run
         client = carla.Client('localhost', port)
         
         set_sync_mode(client, True)
+
+        try:
+
+            envs = [make_suite(suite_name, port=port, big_cam=big_cam, run_scenario=args.run_scenario, player_name=args.player_name+str(i), client=client) for i in range(len(h_start))]
+            start_poses = h_start
+            target_poses = h_target
+
+            # envs = env
+            # start_poses = start_pose
+            # target_poses = target_pose
+
+            run_benchmark(agent_maker, envs, benchmark_dir, seed, autopilot, resume, args, start_poses, target_poses, max_run=max_run, show=show, client=client)
         
-        env = make_suite(suite_name, port=port, big_cam=big_cam, run_scenario=args.run_scenario, player_name=args.player_name, client=client)
-        run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args, start_pose, target_pose, max_run=max_run, show=show)
-        env.clean_up()
+        except Exception as e:
+            print(e)
+
+        finally:
+            set_sync_mode(client, False)
         
-        set_sync_mode(client, False)
 
         elapsed = time.time() - tick
         total_time += elapsed

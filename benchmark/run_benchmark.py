@@ -5,6 +5,8 @@ import numpy as np
 import tqdm
 import time
 
+import carla
+
 import bird_view.utils.bz_utils as bzu
 import bird_view.utils.carla_utils as cu
 
@@ -213,11 +215,83 @@ def run_single(env, weather, start, target, agent_maker, seed, autopilot, args, 
             result['collided'] = env.collided
             result['t'] = env._tick
             break
+    env.clean_up()
 
     return result, diagnostics
 
+def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, args, show=False, client=None):
+    # HACK: deterministic vehicle spawns.
+    
+    print('RUN Multiple')
+    try:
+        world = client.get_world()
+    except:
+        raise "Client object not passed"
 
-def run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args, start_pose, target_pose, max_run=5, show=False):
+    for i, env in enumerate(envs):
+        env.seed = seed
+        env.init(start=starts[i], target=targets[i], weather=cu.PRESET_WEATHERS[weather], args=args)
+
+    agents = [agent_maker() for i in range(len(envs))]
+
+    diagnostics = list()
+    result = {
+            'weather': weather,
+            'start': starts, 'target': targets,
+            'success': None, 't': None,
+            'total_lights_ran': None,
+            'total_lights': None,
+            'collided': None,
+            }
+    
+    episode_over = [False] * len(envs)
+
+    while True:
+
+        world.tick()
+        # print('World Tick')
+        batch = []
+
+        for i in range(len(envs)):
+
+            if episode_over[i]:
+                continue
+            
+            env = envs[i]
+            agent = agents[i]
+
+            env.tick()
+
+            observations = env.get_observations()
+            control = agent.run_step(observations)
+
+            batch.append(carla.command.ApplyVehicleControl(env._player.id, control))
+
+            diagnostic = env.apply_control(control)
+
+            _paint(observations, control, diagnostic, agent.debug, env, show=show)
+
+            diagnostic.pop('viz_img')
+            diagnostics.append(diagnostic)
+
+            if env.is_failure() or env.is_success():
+                result['success'+str(i)] = env.is_success()
+                result['total_lights_ran'+str(i)] = env.traffic_tracker.total_lights_ran
+                result['total_lights'+str(i)] = env.traffic_tracker.total_lights
+                result['collided'+str(i)] = env.collided
+                result['t'+str(i)] = env._tick
+                
+                env.clean_up()
+                episode_over[i] = True
+
+        if all(episode_over):
+            break
+
+        _ = client.apply_batch_sync(batch, False)
+
+    return result, diagnostics
+
+def run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args, start_pose, target_pose, max_run=5, show=False, client=None):
     """
     benchmark_dir must be an instance of pathlib.Path
     """
@@ -226,7 +300,7 @@ def run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args
     diagnostics_dir.mkdir(parents=True, exist_ok=True)
 
     summary = list()
-    total = len(list(env.all_tasks))
+    total = 1 #len(list(env.all_tasks))
     
     if args.run_scenario:
         total = 1
@@ -238,7 +312,12 @@ def run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args
 
     num_run = 0
 
-    for weather, (start, target), run_name in tqdm.tqdm(env.all_tasks, total=total):
+    if isinstance(env, list):
+        environment = env[0]
+    else:
+        environment = env
+
+    for weather, (start, target), run_name in tqdm.tqdm(environment.all_tasks, total=total):
         if resume and len(summary) > 0 and ((summary['start'] == start) \
                        & (summary['target'] == target) \
                        & (summary['weather'] == weather)).any():
@@ -255,7 +334,10 @@ def run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args
 
         bzu.init_video(save_dir=str(benchmark_dir / 'videos'), save_path=run_name)
 
-        result, diagnostics = run_single(env, weather, start, target, agent_maker, seed, autopilot, args, show=show)
+        if isinstance(env, list):
+            result, diagnostics = run_multiple(env, weather, start, target, agent_maker, seed, autopilot, args, show=show, client=client)
+        else:
+            result, diagnostics = run_single(env, weather, start, target, agent_maker, seed, autopilot, args, show=show)
 
         summary = summary.append(result, ignore_index=True)
 

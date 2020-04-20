@@ -351,7 +351,7 @@ class CarlaWrapper(object):
             
         self._client.set_timeout(30.0)
 
-        set_sync_mode(self._client, False)
+        # set_sync_mode(self._client, False)
 
         self._town_name = town
 
@@ -363,6 +363,7 @@ class CarlaWrapper(object):
         self._map = self._world.get_map()
 
         self._player_name = player_name
+        self.player_idx = int(player_name[-1])
 
         self._blueprints = self._world.get_blueprint_library()
         self._vehicle_bp = np.random.choice(self._blueprints.filter(vehicle_name))
@@ -551,6 +552,7 @@ class CarlaWrapper(object):
         return self._player
 
     def ready(self, ticks=50):
+        self._world.tick()
         self.tick()
         self.get_observations()
 
@@ -560,6 +562,7 @@ class CarlaWrapper(object):
             controller.set_max_speed(1 + random.random())
         
         for _ in range(ticks):
+            self._world.tick()
             self.tick()
             self.get_observations()
 
@@ -574,11 +577,11 @@ class CarlaWrapper(object):
         return not self.collided
 
     def tick(self):
-        self._world.tick()
+        # self._world.tick()
         self._tick += 1
 
         # More hiding.
-        map_utils.tick()
+        map_utils.tick(self.player_idx)
 
         self.traffic_tracker.tick()
         self.peds_tracker.tick()
@@ -595,7 +598,7 @@ class CarlaWrapper(object):
 
     def get_observations(self):
         result = dict()
-        result.update(map_utils.get_observations())
+        result.update(map_utils.get_observations(self.player_idx))
         # print ("%.3f, %.3f"%(self.rgb_image.timestamp, self._world.get_snapshot().timestamp.elapsed_seconds))
         result.update({
             'rgb': carla_img_to_np(self.rgb_image),
@@ -614,8 +617,8 @@ class CarlaWrapper(object):
         """
         Applies very naive pedestrian movement.
         """
-        if control is not None:
-            self._player.apply_control(control)
+        # if control is not None:
+        #     self._player.apply_control(control)
 
         return {
                 't': self._tick,
@@ -765,5 +768,5 @@ class CarlaWrapper(object):
     def render_world(self):
         return map_utils.render_world()
 
-    def world_to_pixel(self, pos):
-        return map_utils.world_to_pixel(pos)
+    def world_to_pixel(self, pos, idx):
+        return map_utils.world_to_pixel(pos, idx)

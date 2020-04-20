@@ -191,7 +191,7 @@ class PointGoalSuite(BaseSuite):
 
         for i, (node, command) in enumerate(self._local_planner._route):
             command = int(command)
-            pixel_x, pixel_y = self.world_to_pixel(node.transform.location)
+            pixel_x, pixel_y = self.world_to_pixel(node.transform.location, self.player_idx)
 
             if command != prev_command and prev_command != -1:
                 _command = {1: 'L', 2: 'R', 3: 'S', 4: 'F'}.get(command, '???')
