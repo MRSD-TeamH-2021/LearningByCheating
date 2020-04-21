@@ -216,6 +216,34 @@ def run_single(env, weather, start, target, agent_maker, seed, autopilot, args, 
 
     return result, diagnostics
 
+def run_an_agent(env, agent, run_over, show, id_):
+
+    result = {}
+
+    if run_over:
+        return None, None, None, run_over, None, None
+
+    env.tick()
+
+    observations = env.get_observations()
+    control = agent.run_step(observations)
+
+    diagnostic = env.apply_control(control)
+    frame = _paint(observations, control, diagnostic, agent.debug, env, show=show)
+    diagnostic.pop('viz_img')
+    player_id = env._player.id
+    if env.is_failure() or env.is_success():
+        result['success'+str(id_)] = env.is_success()
+        result['total_lights_ran'+str(id_)] = env.traffic_tracker.total_lights_ran
+        result['total_lights'+str(id_)] = env.traffic_tracker.total_lights
+        result['collided'+str(id_)] = env.collided
+        result['t'+str(id_)] = env._tick
+        
+        env.clean_up()
+        run_over = True
+
+    return control, player_id, diagnostic, run_over, frame, result
+
 def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, args, show=False, client=None):
     # HACK: deterministic vehicle spawns.
     
@@ -240,46 +268,29 @@ def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, a
             'total_lights': None,
             'collided': None,
             }
-    
-    run_over = [False] * len(envs)
+    num_agents = len(envs)
+    run_over_list = [False] * num_agents
 
-    while not all(run_over):
+    while not all(run_over_list):
 
         world.tick()
-        # print('World Tick')
+
         batch = []
         frames = []
-        for i in range(len(envs)):
-
-            if run_over[i]:
-                continue
-            
+    
+        for i in range(num_agents):
             env = envs[i]
             agent = agents[i]
+            run_over = run_over_list[i]
 
-            env.tick()
-
-            observations = env.get_observations()
-            control = agent.run_step(observations)
-
-            batch.append(carla.command.ApplyVehicleControl(env._player.id, control))
-
-            diagnostic = env.apply_control(control)
-
-            frames.append(_paint(observations, control, diagnostic, agent.debug, env, show=show))
-
-            diagnostic.pop('viz_img')
-            diagnostics.append(diagnostic)
-
-            if env.is_failure() or env.is_success():
-                result['success'+str(i)] = env.is_success()
-                result['total_lights_ran'+str(i)] = env.traffic_tracker.total_lights_ran
-                result['total_lights'+str(i)] = env.traffic_tracker.total_lights
-                result['collided'+str(i)] = env.collided
-                result['t'+str(i)] = env._tick
-                
-                env.clean_up()
-                episode_over[i] = True
+            control, player_id, diag, run_over, frame, res = run_an_agent(env, agent, run_over, show, i)
+            
+            run_over_list[i] = run_over
+            if not run_over:
+                diagnostics.append(diag)
+                batch.append(carla.command.ApplyVehicleControl(player_id, control))
+                result.update(res)
+                frames.append(frame)
 
         _ = client.apply_batch_sync(batch, False)
 
@@ -288,15 +299,16 @@ def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, a
         count = 0
         frame_to_disp = None
         for i, frame in enumerate(frames):
-            if not run_over[i]:
+            if not run_over_list[i]:
                 if count == 0:
                     frame_to_disp = frame
                 else:
                     frame_to_disp = _stick_together(frame_to_disp, frame, axis=0)
                 count += 1
-        if show:
-            bzu.show_image('canvas', frame_to_disp)
-        bzu.add_to_video(frame_to_disp)
+        if frame_to_disp is not None:
+            if show:
+                bzu.show_image('Agent View', frame_to_disp)
+            bzu.add_to_video(frame_to_disp)
 
     return result, diagnostics
 

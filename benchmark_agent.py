@@ -10,6 +10,7 @@ import bird_view.utils.bz_utils as bzu
 
 import xml.etree.ElementTree as ET
 import carla 
+import traceback
 
 def _agent_factory_hack(model_path, config, autopilot):
     """
@@ -129,8 +130,8 @@ def run(model_path, port, suite, big_cam, seed, autopilot, resume, args, max_run
 
             run_benchmark(agent_maker, envs, benchmark_dir, seed, autopilot, resume, args, start_poses, target_poses, max_run=max_run, show=show, client=client)
         
-        except Exception as e:
-            print(e)
+        except Exception:
+            traceback.print_exc()
 
         finally:
             set_sync_mode(client, False)
