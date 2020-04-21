@@ -9,7 +9,7 @@ from .agent import Agent
 from .controller import PIDController, CustomController
 from .controller import ls_circle
 
-
+from IPython import embed
 STEPS = 5
 SPEED_STEPS = 3
 COMMANDS = 4
@@ -58,20 +58,43 @@ class BirdViewPolicyModelSS(common.ResnetBase):
         
         self.all_branch = all_branch
 
-    def forward(self, bird_view, velocity, command):
+    def forward(self, bird_view, velocity, commands):
+        # print("model genorai")
+        # print(bird_view.shape)
         h = self.conv(bird_view)
+        # print(h.shape)
         b, c, kh, kw = h.size()
+        # print(h2.shape)
+        
 
         # Late fusion for velocity
-        velocity = velocity[...,None,None,None].repeat((1,128,kh,kw))
+        res = []
+        for v in velocity:
 
+            # expanding/reshaping velocity to ensure it stacks with the conv feature map output
+            res.append(v[...,None,None,None].repeat((1,128,kh,kw)))
+        
+        velocity = torch.stack(res,dim=1).squeeze(0)
+        # embed()
         h = torch.cat((h, velocity), dim=1)
         h = self.deconv(h)
 
         location_preds = [location_pred(h) for location_pred in self.location_pred]
         location_preds = torch.stack(location_preds, dim=1)
-            
-        location_pred = common.select_branch(location_preds, command)
+        
+        # location_preds => (b,4,5,2) array
+        # embed()
+        # in multi batch case, command is an array, 
+        # TODO, improve select branch to take a single list of one hot 
+        #       commands for each member in batch b to remove the loop below
+        location_pred = []
+        # embed()
+        for i in range(b):
+            lp=common.select_branch(location_preds,commands[i].unsqueeze(0))
+            location_pred.append(lp[i])
+        
+        location_pred = torch.stack(location_pred, dim=0)
+        # location_pred = common.select_branch(location_preds, command)
         
         if self.all_branch:
             return location_pred, location_preds
@@ -110,7 +133,7 @@ class BirdViewAgent(Agent):
             _birdview = self.transform(birdview).to(self.device).unsqueeze(0)
             _speed = torch.FloatTensor([speed]).to(self.device)
             _command = command.to(self.device).unsqueeze(0)
-            
+            # embed
             if self.model.all_branch:
                 _locations, _ = self.model(_birdview, _speed, _command)
             else:
@@ -172,3 +195,92 @@ class BirdViewAgent(Agent):
             return control, _map_locations
         else:
             return control
+
+
+    def run_multiple_step(self, observations, teaching=False):
+        birdview = []
+        speed = []
+        command = []
+        for observation in observations:
+            birdview.append(common.crop_birdview(observation['birdview'], dx=-10))
+            speed.append(np.linalg.norm(observation['velocity']))
+            command.append(self.one_hot[int(observation['command']) - 1])
+        
+        # birdview = torch.stack(birdview, dim=1)
+        # speed = torch.stack(speed,dim=1)
+        command = torch.stack(command,dim=0)
+
+        with torch.no_grad():
+            _birdview = torch.stack([self.transform(bv).to(self.device) for bv in birdview],dim=1) #.unsqueeze(0)
+            _birdview = _birdview.permute(1,0,2,3)
+            _speed = torch.FloatTensor(speed).to(self.device)
+            _command = command.to(self.device) #.unsqueeze(0)
+            # embed
+            if self.model.all_branch:
+                _locations, _ = self.model(_birdview, _speed, _command)
+            else:
+                _locations = self.model(_birdview, _speed, _command)
+            # embed()
+            _locations = _locations.squeeze().detach().cpu().numpy()
+
+        # _locations is 3,5,2 in multi batch, and 5.2 in singl batch, write loops where necessary to pass on the data, preserve numpy vectorization where possible  
+        _map_locations = _locations
+        # Pixel coordinates.
+        _locations = (_locations + 1) / 2 * CROP_SIZE
+        num_batches = _locations.shape[0]
+        controls = []
+        for b in range(num_batches):
+            observation = observations[b]
+            _locations_for_agent = _locations[b]
+            targets = list()
+
+            for i in range(STEPS):
+                pixel_dx, pixel_dy = _locations_for_agent[i]
+                pixel_dx = pixel_dx - CROP_SIZE / 2
+                pixel_dy = CROP_SIZE - pixel_dy
+
+                angle = np.arctan2(pixel_dx, pixel_dy)
+                dist = np.linalg.norm([pixel_dx, pixel_dy]) / PIXELS_PER_METER
+
+                targets.append([dist * np.cos(angle), dist * np.sin(angle)])
+
+            target_speed = 0.0
+
+            for i in range(1, SPEED_STEPS):
+                pixel_dx, pixel_dy = _locations_for_agent[i]
+                prev_dx, prev_dy = _locations_for_agent[i-1]
+
+                dx = pixel_dx - prev_dx
+                dy = pixel_dy - prev_dy
+                delta = np.linalg.norm([dx, dy])
+
+                target_speed += delta / (PIXELS_PER_METER * self.gap * DT) / (SPEED_STEPS-1)
+
+            _cmd = int(observation['command'])
+            n = self.steer_points.get(str(_cmd), 1)
+            targets = np.concatenate([[[0, 0]], targets], 0)
+            c, r = ls_circle(targets)
+            closest = common.project_point_to_circle(targets[n], c, r)
+
+            v = [1.0, 0.0, 0.0]
+            w = [closest[0], closest[1], 0.0]
+            alpha = common.signed_angle(v, w)
+            steer = self.turn_control.run_step(alpha, _cmd)
+            throttle = self.speed_control.step(target_speed - speed)
+            brake = 0.0
+
+            if target_speed < 1.0:
+                steer = 0.0
+                throttle = 0.0
+                brake = 1.0
+
+            self.debug['locations_birdview'] = _locations_for_agent[:,::-1].astype(int)
+            self.debug['target'] = closest
+            self.debug['target_speed'] = target_speed
+
+            control = self.postprocess(steer, throttle, brake)
+            controls.append(control)
+        if teaching:
+            return controls, _map_locations
+        else:
+            return controls

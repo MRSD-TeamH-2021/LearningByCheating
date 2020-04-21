@@ -251,7 +251,7 @@ def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, a
         world.tick()
         # print('World Tick')
         batch = []
-
+        observations_batch = []
         for i in range(len(envs)):
 
             if episode_over[i]:
@@ -263,7 +263,20 @@ def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, a
             env.tick()
 
             observations = env.get_observations()
-            control = agent.run_step(observations)
+            observations_batch.append(observations)
+
+        control_array = agent.run_multiple_step(observations_batch)
+
+        for i in range(len(envs)):
+            
+            if episode_over[i]:
+                continue
+            
+            env = envs[i]
+            agent = agents[i]
+
+            control = control_array.pop(0) # trying to avoid dependency on index
+            observations = observations_batch.pop(0)
 
             batch.append(carla.command.ApplyVehicleControl(env._player.id, control))
 

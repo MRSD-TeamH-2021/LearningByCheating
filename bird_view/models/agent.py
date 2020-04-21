@@ -23,6 +23,7 @@ class Agent(object):
         self.debug = dict()
 
     def postprocess(self, steer, throttle, brake):
+        print("HEREEEEE", steer, throttle, brake)
         control = carla.VehicleControl()
         control.steer = np.clip(steer, -1.0, 1.0)
         control.throttle = np.clip(throttle, 0.0, 1.0)

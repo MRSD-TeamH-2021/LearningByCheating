@@ -10,6 +10,7 @@ import torchvision.transforms as transforms
 
 from .resnet import get_resnet
 
+from IPython import embed
 
 CROP_SIZE = 192
 MAP_SIZE = 320
@@ -28,9 +29,13 @@ def crop_birdview(birdview, dx=0, dy=0):
 
 def select_branch(branches, one_hot):
     shape = branches.size()
-
+    # print(shape,one_hot)
     for i, s in enumerate(shape[2:]):
-        one_hot = torch.stack([one_hot for _ in range(s)], dim=i+2)
+        # print(i,s)
+        # print(one_hot)
+        one_hot = torch.stack(
+            [one_hot for _ in range(s)], 
+            dim=i+2)
 
     return torch.sum(one_hot * branches, dim=1)
 

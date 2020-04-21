@@ -1,0 +1,49 @@
+./CarlaUE4.sh
+
+# Environment setup:
+export PYTHONPATH="`pwd`/PythonAPI:$PYTHONPATH" 
+export DISPLAY=":1"
+
+
+# Commands to run the random scenario:
+#in PythonAPI/util 
+python config.py -m Town02 --weather ClearNoon
+
+# Carla LBC
+CUDA_VISIBLE_DEVICES="0" python benchmark_agent.py --suite=town2nw \
+    --model-path=ckpts/priveleged/model-128.th \
+    --scenario_config=scenario_configs/Random.xml \
+    --scenario Random_1 \
+    --show --run_scenario --player-name="hero"
+
+
+
+# Commands to run specific scenarios:
+
+# Scenario Runner
+python scenario_runner.py --scenario OppositeVehicleRunningRedLight021 --reloadWorld
+
+# Carla LBC:
+CUDA_VISIBLE_DEVICES="0" python benchmark_agent.py --suite=town2nw \
+    --model-path=ckpts/priveleged/model-128.th \
+    --scenario_config=scenario_configs/RunningRedLight.xml \
+    --scenario OppositeVehicleRunningRedLight021 \
+    --show --run_scenario --player-name="hero"
+
+
+python scenario_runner.py --scenario DynamicObjectCrossing_1 --reloadWorld
+CUDA_VISIBLE_DEVICES="0" python benchmark_agent.py --suite=town2nw \
+    --model-path=ckpts/priveleged/model-128.th \
+    --scenario_config=scenario_configs/ObjectCrossing.xml \
+    --scenario DynamicObjectCrossing_1 \
+    --show --run_scenario --player-name="hero"
+
+
+python scenario_runner.py --scenario FollowLeadingVehicleWithObstacle_3 --reloadWorld
+CUDA_VISIBLE_DEVICES="0" python benchmark_agent.py --suite=town2nw \
+    --model-path=ckpts/priveleged/model-128.th \
+    --scenario_config=scenario_configs/FollowLeadingVehicle.xml \
+    --scenario FollowLeadingVehicleWithObstacle_3 \
+    --show --run_scenario --player-name="hero"
+
+
