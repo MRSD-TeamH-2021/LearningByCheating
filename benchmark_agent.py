@@ -79,7 +79,6 @@ def get_target_from_xml(filepath, scenario_name):
         if(scenario.attrib.get('name') == scenario_name):
             for start in scenario.iter("hero_start"):
                 h_start.append(TargetConfiguration(start).transform)
-                print(h_start)
             for target in scenario.iter("hero_target"):
                 h_target.append(TargetConfiguration(target).transform)
     
@@ -101,21 +100,10 @@ def run(model_path, port, suite, big_cam, seed, autopilot, resume, args, max_run
     # Get target
     if (args.run_scenario):
         h_start, h_target = get_target_from_xml(args.scenario_config, args.scenario)
-        if args.player_name == "hero":
-            start_pose = h_start[0]
-            target_pose = h_target[0]
-        elif args.player_name == "hero1":
-            start_pose = h_start[1]
-            target_pose = h_target[1]
-        if args.player_name == "hero2":
-            start_pose = h_start[2]
-            target_pose = h_target[2]
-            
-        if not (target_pose or start_pose):
+                   
+        if not (h_start or h_target):
             return
 
-    print(start_pose)
-    print(target_pose)
     log_dir = model_path.parent
     config = bzu.load_json(str(log_dir / 'config.json'))
 
@@ -138,10 +126,6 @@ def run(model_path, port, suite, big_cam, seed, autopilot, resume, args, max_run
             envs = [make_suite(suite_name, port=port, big_cam=big_cam, run_scenario=args.run_scenario, player_name=args.player_name+str(i), client=client) for i in range(len(h_start))]
             start_poses = h_start
             target_poses = h_target
-
-            # envs = env
-            # start_poses = start_pose
-            # target_poses = target_pose
 
             run_benchmark(agent_maker, envs, benchmark_dir, seed, autopilot, resume, args, start_poses, target_poses, max_run=max_run, show=show, client=client)
         

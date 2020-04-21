@@ -12,12 +12,35 @@ import bird_view.utils.carla_utils as cu
 
 from bird_view.models.common import crop_birdview
 
+import cv2
+import numpy as np   
+
+def _stick_together(a, b, axis=1):
+
+    if axis == 1:
+        h = min(a.shape[0], b.shape[0])
+
+        r1 = h / a.shape[0]
+        r2 = h / b.shape[0]
+    
+        a = cv2.resize(a, (int(r1 * a.shape[1]), int(r1 * a.shape[0])))
+        b = cv2.resize(b, (int(r2 * b.shape[1]), int(r2 * b.shape[0])))
+
+        return np.concatenate([a, b], 1)
+        
+    else:
+        h = min(a.shape[1], b.shape[1])
+        
+        r1 = h / a.shape[1]
+        r2 = h / b.shape[1]
+    
+        a = cv2.resize(a, (int(r1 * a.shape[1]), int(r1 * a.shape[0])))
+        b = cv2.resize(b, (int(r2 * b.shape[1]), int(r2 * b.shape[0])))
+
+        return np.concatenate([a, b], 0)
 
 def _paint(observations, control, diagnostic, debug, env, show=False):
-    import cv2
-    import numpy as np
-        
-
+    
     WHITE = (255, 255, 255)
     RED = (255, 0, 0)
     CROP_SIZE = 192
@@ -33,30 +56,6 @@ def _paint(observations, control, diagnostic, debug, env, show=False):
         rgb = np.uint8(observations['rgb']).copy()
     else:
         canvas = np.uint8(observations['rgb']).copy()
-
-    def _stick_together(a, b, axis=1):
-
-        if axis == 1:
-            h = min(a.shape[0], b.shape[0])
-
-            r1 = h / a.shape[0]
-            r2 = h / b.shape[0]
-        
-            a = cv2.resize(a, (int(r1 * a.shape[1]), int(r1 * a.shape[0])))
-            b = cv2.resize(b, (int(r2 * b.shape[1]), int(r2 * b.shape[0])))
-    
-            return np.concatenate([a, b], 1)
-            
-        else:
-            h = min(a.shape[1], b.shape[1])
-            
-            r1 = h / a.shape[1]
-            r2 = h / b.shape[1]
-        
-            a = cv2.resize(a, (int(r1 * a.shape[1]), int(r1 * a.shape[0])))
-            b = cv2.resize(b, (int(r2 * b.shape[1]), int(r2 * b.shape[0])))
-    
-            return np.concatenate([a, b], 0)
 
     def _write(text, i, j, canvas=canvas, fontsize=0.4):
         rows = [x * (canvas.shape[0] // 10) for x in range(10+1)]
@@ -160,10 +159,8 @@ def _paint(observations, control, diagnostic, debug, env, show=False):
     if 'big_cam' in observations:
         full = _stick_together(canvas, full, axis=0)
     
-    if show:
-        bzu.show_image('canvas', full)
-    bzu.add_to_video(full)
-
+    return full 
+    
 def set_sync_mode(client, sync):
     world = client.get_world()
 
@@ -244,17 +241,17 @@ def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, a
             'collided': None,
             }
     
-    episode_over = [False] * len(envs)
+    run_over = [False] * len(envs)
 
-    while True:
+    while not all(run_over):
 
         world.tick()
         # print('World Tick')
         batch = []
-
+        frames = []
         for i in range(len(envs)):
 
-            if episode_over[i]:
+            if run_over[i]:
                 continue
             
             env = envs[i]
@@ -269,7 +266,7 @@ def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, a
 
             diagnostic = env.apply_control(control)
 
-            _paint(observations, control, diagnostic, agent.debug, env, show=show)
+            frames.append(_paint(observations, control, diagnostic, agent.debug, env, show=show))
 
             diagnostic.pop('viz_img')
             diagnostics.append(diagnostic)
@@ -284,10 +281,22 @@ def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, a
                 env.clean_up()
                 episode_over[i] = True
 
-        if all(episode_over):
-            break
-
         _ = client.apply_batch_sync(batch, False)
+
+
+        # Display
+        count = 0
+        frame_to_disp = None
+        for i, frame in enumerate(frames):
+            if not run_over[i]:
+                if count == 0:
+                    frame_to_disp = frame
+                else:
+                    frame_to_disp = _stick_together(frame_to_disp, frame, axis=0)
+                count += 1
+        if show:
+            bzu.show_image('canvas', frame_to_disp)
+        bzu.add_to_video(frame_to_disp)
 
     return result, diagnostics
 
