@@ -13,7 +13,11 @@ import bird_view.utils.carla_utils as cu
 from bird_view.models.common import crop_birdview
 
 import cv2
-import numpy as np   
+import numpy as np 
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import operator
+
 
 def _stick_together(a, b, axis=1):
 
@@ -221,7 +225,7 @@ def run_an_agent(env, agent, run_over, show, id_):
     result = {}
 
     if run_over:
-        return None, None, None, run_over, None, None
+        return id_, None, None, None, run_over, None, None
 
     env.tick()
 
@@ -242,12 +246,15 @@ def run_an_agent(env, agent, run_over, show, id_):
         env.clean_up()
         run_over = True
 
-    return control, player_id, diagnostic, run_over, frame, result
+    return id_, control, player_id, diagnostic, run_over, frame, result
 
 def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, args, show=False, client=None):
     # HACK: deterministic vehicle spawns.
     
     print('RUN Multiple')
+    
+    pool = ThreadPoolExecutor(4)
+
     try:
         world = client.get_world()
     except:
@@ -277,33 +284,41 @@ def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, a
 
         batch = []
         frames = []
-    
+        futures = []
+
         for i in range(num_agents):
             env = envs[i]
             agent = agents[i]
             run_over = run_over_list[i]
 
-            control, player_id, diag, run_over, frame, res = run_an_agent(env, agent, run_over, show, i)
+            futures.append(pool.submit(run_an_agent, env, agent, run_over, show, i))
+
+        for x in as_completed(futures):
+            i, control, player_id, diag, run_over, frame, res = x.result()
             
             run_over_list[i] = run_over
+
             if not run_over:
                 diagnostics.append(diag)
                 batch.append(carla.command.ApplyVehicleControl(player_id, control))
                 result.update(res)
-                frames.append(frame)
+                frames.append((i,frame))
 
         _ = client.apply_batch_sync(batch, False)
-
 
         # Display
         count = 0
         frame_to_disp = None
+        
+        if frames:
+            frames.sort(key= operator.itemgetter(0))
+
         for i, frame in enumerate(frames):
             if not run_over_list[i]:
                 if count == 0:
-                    frame_to_disp = frame
+                    frame_to_disp = frame[1]
                 else:
-                    frame_to_disp = _stick_together(frame_to_disp, frame, axis=0)
+                    frame_to_disp = _stick_together(frame_to_disp, frame[1], axis=0)
                 count += 1
         if frame_to_disp is not None:
             if show:
