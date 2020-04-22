@@ -165,14 +165,14 @@ def _paint(observations, control, diagnostic, debug, env, show=False):
     
     return full 
     
-def set_sync_mode(client, sync):
-    world = client.get_world()
+# def set_sync_mode(client, sync):
+#     world = client.get_world()
 
-    settings = world.get_settings()
-    settings.synchronous_mode = sync
-    settings.fixed_delta_seconds = 0.1
+#     settings = world.get_settings()
+#     settings.synchronous_mode = sync
+#     settings.fixed_delta_seconds = 0.05
 
-    world.apply_settings(settings)
+#     world.apply_settings(settings)
 
 def run_single(env, weather, start, target, agent_maker, seed, autopilot, args, show=False):
     # HACK: deterministic vehicle spawns.
@@ -303,6 +303,9 @@ def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, a
                 batch.append(carla.command.ApplyVehicleControl(player_id, control))
                 result.update(res)
                 frames.append((i,frame))
+            else:
+                frames.append((i,None))
+
 
         _ = client.apply_batch_sync(batch, False)
 
