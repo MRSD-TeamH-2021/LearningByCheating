@@ -233,7 +233,10 @@ def run_an_agent(env, agent, run_over, show, id_):
     control = agent.run_step(observations)
 
     diagnostic = env.apply_control(control)
-    frame = _paint(observations, control, diagnostic, agent.debug, env, show=show)
+    if(show):
+        frame = _paint(observations, control, diagnostic, agent.debug, env, show=show)
+    else:
+        frame = None
     diagnostic.pop('viz_img')
     player_id = env._player.id
     if env.is_failure() or env.is_success():
@@ -316,13 +319,14 @@ def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, a
         if frames:
             frames.sort(key= operator.itemgetter(0))
 
-        for i, frame in enumerate(frames):
-            if not run_over_list[i]:
-                if count == 0:
-                    frame_to_disp = frame[1]
-                else:
-                    frame_to_disp = _stick_together(frame_to_disp, frame[1], axis=0)
-                count += 1
+            for i, frame in enumerate(frames):
+                if(frame[1] is not None):
+                    if not run_over_list[i]:
+                        if count == 0:
+                            frame_to_disp = frame[1]
+                        else:
+                            frame_to_disp = _stick_together(frame_to_disp, frame[1], axis=0)
+                        count += 1
         if frame_to_disp is not None:
             if show:
                 bzu.show_image('Agent View', frame_to_disp)
@@ -334,9 +338,9 @@ def run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args
     """
     benchmark_dir must be an instance of pathlib.Path
     """
-    summary_csv = benchmark_dir / 'summary.csv'
-    diagnostics_dir = benchmark_dir / 'diagnostics'
-    diagnostics_dir.mkdir(parents=True, exist_ok=True)
+    # summary_csv = benchmark_dir / 'summary.csv'
+    # diagnostics_dir = benchmark_dir / 'diagnostics'
+    # diagnostics_dir.mkdir(parents=True, exist_ok=True)
 
     summary = list()
     total = 1 #len(list(env.all_tasks))
@@ -344,10 +348,10 @@ def run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args
     if args.run_scenario:
         total = 1
 
-    if summary_csv.exists() and resume:
-        summary = pd.read_csv(summary_csv)
-    else:
-        summary = pd.DataFrame()
+    # if summary_csv.exists() and resume:
+    #     summary = pd.read_csv(summary_csv)
+    # else:
+        # summary = pd.DataFrame()
 
     num_run = 0
 
@@ -369,20 +373,20 @@ def run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, args
             if num_run >=1:
                 return
 
-        diagnostics_csv = str(diagnostics_dir / ('%s.csv' % run_name))
+        # diagnostics_csv = str(diagnostics_dir / ('%s.csv' % run_name))
 
-        bzu.init_video(save_dir=str(benchmark_dir / 'videos'), save_path=run_name)
+        # bzu.init_video(save_dir=str(benchmark_dir / 'videos'), save_path=run_name)
 
         if isinstance(env, list):
             result, diagnostics = run_multiple(env, weather, start, target, agent_maker, seed, autopilot, args, show=show, client=client)
         else:
             result, diagnostics = run_single(env, weather, start, target, agent_maker, seed, autopilot, args, show=show)
 
-        summary = summary.append(result, ignore_index=True)
+        # summary = summary.append(result, ignore_index=True)
 
         # Do this every timestep just in case.
-        pd.DataFrame(summary).to_csv(summary_csv, index=False)
-        pd.DataFrame(diagnostics).to_csv(diagnostics_csv, index=False)
+        # pd.DataFrame(summary).to_csv(summary_csv, index=False)
+        # pd.DataFrame(diagnostics).to_csv(diagnostics_csv, index=False)
 
         num_run += 1
 

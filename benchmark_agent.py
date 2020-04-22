@@ -92,8 +92,10 @@ def set_sync_mode(client, sync):
 
     settings = world.get_settings()
     settings.synchronous_mode = sync
+    world.apply_settings(settings)
+    settings = world.get_settings()
     settings.fixed_delta_seconds = 0.1
-
+    
     world.apply_settings(settings)
 
 def run(model_path, port, suite, big_cam, seed, autopilot, resume, args, max_run=10, show=False):
