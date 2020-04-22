@@ -57,7 +57,9 @@ COLORS = [
 
 
 TOWNS = ['Town01', 'Town02', 'Town03', 'Town04']
-VEHICLE_NAME = 'vehicle.ford.mustang'
+# VEHICLE_NAME = 'vehicle.ford.mustang'
+VEHICLE_NAME = 'vehicle.carlamotors.carlacola'
+
 
 def is_within_distance_ahead(target_location, current_location, orientation, max_distance, degree=60):
     u = np.array([
@@ -697,7 +699,7 @@ class CarlaWrapper(object):
         rgb_camera_bp.set_attribute('fov', '90')
         rgb_camera = self._world.spawn_actor(
             rgb_camera_bp,
-            carla.Transform(carla.Location(x=2.0, z=1.4), carla.Rotation(pitch=0)),
+            carla.Transform(carla.Location(x=2.5, z=1.4), carla.Rotation(pitch=0)),
             attach_to=self._player)
 
         rgb_camera.listen(self._rgb_queue.put)
