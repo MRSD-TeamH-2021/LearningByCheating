@@ -93,7 +93,7 @@ def _paint(observations, control, diagnostic, debug, env, show=False):
     _write('Goal: %.1f' % diagnostic['distance_to_goal'], 4, 6, fontsize=fontsize)
 
     _write('Time: %d' % env._tick, 5, 6, fontsize=fontsize)
-    _write('FPS: %.2f' % (env._tick / (diagnostic['wall'])), 6, 6, fontsize=fontsize)
+    # _write('FPS: %.2f' % (env._tick / (diagnostic['wall'])), 6, 6, fontsize=fontsize)
 
     for x, y in debug.get('locations', []):
         x = int(X - x / 2.0 * CROP_SIZE)
@@ -329,7 +329,7 @@ def run_multiple(envs, weather, starts, targets, agent_maker, seed, autopilot, a
                         count += 1
         if frame_to_disp is not None:
             if show:
-                bzu.show_image('Agent View', frame_to_disp)
+                bzu.show_image('Agent Debug View', frame_to_disp)
             bzu.add_to_video(frame_to_disp)
 
     return result, diagnostics
