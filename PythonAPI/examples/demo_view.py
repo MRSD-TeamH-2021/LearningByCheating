@@ -433,7 +433,7 @@ class HUD(object):
         vehicles = world.world.get_actors().filter('vehicle.*')
 
         global start_time
-        if (time.time() - start_time > 30):
+        if (time.time() - start_time > 40):
             self.count_dict[len(vehicles)] += 1
             self.cumulative_fps[len(vehicles)] += self.server_fps
 
@@ -481,7 +481,7 @@ class HUD(object):
                 fps = self.cumulative_fps[i]/self.count_dict[i]
 
             self._info_text += [
-                'FPS with ' + str(i) + ' vehicle(s): ' + str(fps) 
+                'FPS with ' + str(i) + ' vehicle(s): % 16.2f FPS' % fps 
             ]
         # if len(vehicles) > 1:
         #     self._info_text += ['Nearby vehicles:']
