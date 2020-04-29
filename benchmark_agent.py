@@ -125,10 +125,19 @@ def run(model_path, port, suite, big_cam, seed, autopilot, resume, args, max_run
         set_sync_mode(client, True)
 
         try:
+            if args.num_agents > len(h_start):
+                raise Exception("Number of agents more than start/end points in the XML file.")
+            envs = []
+            start_poses = []
+            target_poses = []
+            
+            print("Running for ", str(args.num_agents), " agents.")
 
-            envs = [make_suite(suite_name, port=port, big_cam=big_cam, run_scenario=args.run_scenario, player_name=args.player_name+str(i), client=client) for i in range(len(h_start))]
-            start_poses = h_start
-            target_poses = h_target
+            for i in range(args.num_agents):
+                env = make_suite(suite_name, port=port, big_cam=big_cam, run_scenario=args.run_scenario, player_name=args.player_name+str(i), client=client)
+                envs.append(env)
+                start_poses.append(h_start[i])
+                target_poses.append(h_target[i])
 
             run_benchmark(agent_maker, envs, benchmark_dir, seed, autopilot, resume, args, start_poses, target_poses, max_run=max_run, show=show, client=client)
         
@@ -161,6 +170,7 @@ if __name__ == '__main__':
     parser.add_argument('--scenario', default=None)
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--max-run', type=int, default=3)
+    parser.add_argument('--num-agents', type=int, default=3)
     parser.add_argument('--player-name', default="hero")
 
     args = parser.parse_args()

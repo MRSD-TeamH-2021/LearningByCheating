@@ -97,7 +97,7 @@ CUDA_VISIBLE_DEVICES="0" python benchmark_agent.py --suite=town2 --model-path=ck
 ```
  - Now you can see the the image model drive in the testing town!
 
-# Steps to Run 3 models concurrently 
+# Steps to Run n models concurrently 
 
 After the above setup three terminals and run the following commands. 
 Environment setup:
@@ -133,7 +133,8 @@ python benchmark_agent.py --suite=town2nw \
     --model-path=ckpts/priveleged/model-128.th \
     --scenario_config=scenario_configs/Random.xml \
     --scenario Random_1 \
-    --run_scenario --player-name="hero" --show 
+    --run_scenario --player-name="hero" \
+    --num-agents 10 --show 
 ```
 
 ## Benchmark Results (0.9.6 w/ pedestrians fix)
