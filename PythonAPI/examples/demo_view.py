@@ -433,7 +433,7 @@ class HUD(object):
         vehicles = world.world.get_actors().filter('vehicle.*')
 
         global start_time
-        if (time.time() - start_time > 40):
+        if (time.time() - start_time > 65):
             self.count_dict[len(vehicles)] += 1
             self.cumulative_fps[len(vehicles)] += self.server_fps
 
@@ -481,7 +481,7 @@ class HUD(object):
                 fps = self.cumulative_fps[i]/self.count_dict[i]
 
             self._info_text += [
-                'FPS with ' + str(i) + ' vehicle(s): % 16.2f FPS' % fps 
+                'FPS with ' + str(i) + ' vehicle(s): % 3.2f FPS' % fps 
             ]
         # if len(vehicles) > 1:
         #     self._info_text += ['Nearby vehicles:']
@@ -707,7 +707,7 @@ class CameraManager(object):
         # bound_y = 0.5 + self._parent.bounding_box.extent.y
         # Attachment = carla.AttachmentType
         self._camera_transforms = [
-            (carla.Transform(carla.Location(x=-8, y=177, z=80), carla.Rotation(pitch=-70, yaw=0)), None),
+            (carla.Transform(carla.Location(x=-8, y=177, z=145), carla.Rotation(pitch=-63, yaw=0)), None),
             # (carla.Transform(carla.Location(x=1.6, z=1.7)), Attachment.Rigid),
             # (carla.Transform(carla.Location(x=5.5, y=1.5, z=1.5)), Attachment.SpringArm),
             # (carla.Transform(carla.Location(x=-8.0, z=6.0), carla.Rotation(pitch=6.0)), Attachment.SpringArm),
