@@ -11,25 +11,25 @@
         <hero_target x="14.6" y="306.7" z="1" yaw="0" model="vehicle.lincoln.mkz2017" />
         
         <hero_start x="59.7" y="241.3" z="1" yaw="0" model="vehicle.lincoln.mkz2017" />
-        <hero_start x="153.1" y="241.3" z="1" yaw="0" model="vehicle.lincoln.mkz2017" />
+        <hero_target x="153.1" y="241.3" z="1" yaw="0" model="vehicle.lincoln.mkz2017" />
         
         <hero_start x="153.1" y="241.3" z="1" yaw="0" model="vehicle.lincoln.mkz2017" />
-        <hero_start x="76.5" y="301.9" z="1" yaw="-180" model="vehicle.lincoln.mkz2017" />
+        <hero_target x="76.5" y="301.9" z="1" yaw="-180" model="vehicle.lincoln.mkz2017" />
         
         <hero_start x="76.5" y="301.9" z="1" yaw="-180" model="vehicle.lincoln.mkz2017" />
-        <hero_start x="89.0" y="191.3" z="1" yaw="0" model="vehicle.lincoln.mkz2017" />
+        <hero_target x="89.0" y="191.3" z="1" yaw="0" model="vehicle.lincoln.mkz2017" />
         
         <hero_start x="89.0" y="191.3" z="1" yaw="0" model="vehicle.lincoln.mkz2017" />
-        <hero_start x="132.4" y="212.6" z="1" yaw="90" model="vehicle.lincoln.mkz2017" />
+        <hero_target x="132.4" y="212.6" z="1" yaw="90" model="vehicle.lincoln.mkz2017" />
         
         <hero_start x="132.4" y="212.6" z="1" yaw="90" model="vehicle.lincoln.mkz2017" />
-        <hero_start x="192.9" y="212.4" z="1" yaw="-90" model="vehicle.lincoln.mkz2017" />
+        <hero_target x="192.9" y="212.4" z="1" yaw="-90" model="vehicle.lincoln.mkz2017" />
         
         <hero_start x="192.9" y="212.4" z="1" yaw="-90" model="vehicle.lincoln.mkz2017" />
-        <hero_start x="114.6" y="104.8" z="1" yaw="180" model="vehicle.lincoln.mkz2017" />
+        <hero_target x="114.6" y="104.8" z="1" yaw="180" model="vehicle.lincoln.mkz2017" />
         
         <hero_start x="114.6" y="104.8" z="1" yaw="180" model="vehicle.lincoln.mkz2017" />
-        <hero_start x="59.7" y="241.3" z="1" yaw="0" model="vehicle.lincoln.mkz2017" />
+        <hero_target x="59.7" y="241.3" z="1" yaw="0" model="vehicle.lincoln.mkz2017" />
 
 
     </scenario>

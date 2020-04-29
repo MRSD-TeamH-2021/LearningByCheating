@@ -122,6 +122,8 @@ except ImportError:
 import time 
 from carla import WeatherParameters
 
+start_time = time.time()
+
 
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
@@ -400,6 +402,13 @@ class HUD(object):
         self._info_text = []
         self._server_clock = pygame.time.Clock()
 
+        self.count_dict = dict()
+        self.cumulative_fps = dict()
+
+        for i in range(11):
+            self.count_dict[i] = 0
+            self.cumulative_fps[i] = 0
+
     def on_world_tick(self, timestamp):
         self._server_clock.tick()
         self.server_fps = self._server_clock.get_fps()
@@ -422,6 +431,12 @@ class HUD(object):
         # max_col = max(1.0, max(collision))
         # collision = [x / max_col for x in collision]
         vehicles = world.world.get_actors().filter('vehicle.*')
+
+        global start_time
+        if (time.time() - start_time > 30):
+            self.count_dict[len(vehicles)] += 1
+            self.cumulative_fps[len(vehicles)] += self.server_fps
+
         self._info_text = [
             'Server:  % 16.2f FPS' % self.server_fps,
             # 'Client:  % 16.0f FPS' % clock.get_fps(),
@@ -454,7 +469,20 @@ class HUD(object):
             # 'Collision:',
             # collision,
             '',
-            'Number of vehicles: % 8d' % len(vehicles)]
+            'Number of vehicles: % 8d' % len(vehicles), 
+            '',
+            '',
+            ]
+
+        for i in range(11):
+            if self.count_dict[i] == 0:
+                fps = 0
+            else:
+                fps = self.cumulative_fps[i]/self.count_dict[i]
+
+            self._info_text += [
+                'FPS with ' + str(i) + ' vehicle(s): ' + str(fps) 
+            ]
         # if len(vehicles) > 1:
         #     self._info_text += ['Nearby vehicles:']
         #     distance = lambda l: math.sqrt((l.x - t.location.x)**2 + (l.y - t.location.y)**2 + (l.z - t.location.z)**2)
